@@ -1,6 +1,12 @@
 # SQLs for populating tables from foodmart database data
 
-customers_sql = <<-SQL
+[
+"truncate customers",
+"truncate products",
+"truncate product_classes",
+"vacuum",
+
+<<-SQL,
 insert into customers (id, full_name, address1, address2, city, state_province, postal_code, country, birth_date, gender)
 select * from dblink('dbname=foodmart',
 'select customer_id, fullname, address1, address2, city, state_province, postal_code, country, birthdate, gender from customer'
@@ -8,7 +14,7 @@ select * from dblink('dbname=foodmart',
 postal_code varchar, country varchar, birth_date date, gender varchar)
 SQL
 
-products_sql = <<-SQL
+<<-SQL,
 insert into products (id, product_class_id, product_name, brand_name, sku, gross_weight, net_weight, recyclable_package,
 shelf_width, shelf_height, shelf_depth)
 select * from dblink('dbname=foodmart',
@@ -18,7 +24,7 @@ shelf_width, shelf_height, shelf_depth from product'
 gross_weight float4, net_weight float4, recyclable_package bool, shelf_width float4, shelf_height float4, shelf_depth float4)
 SQL
 
-product_classes_sql = <<-SQL
+<<-SQL,
 insert into product_classes (id, product_family, product_department, product_category, product_subcategory)
 select * from dblink('dbname=foodmart',
 'select product_class_id, product_family, product_department, product_category, product_subcategory from product_class'
@@ -26,36 +32,86 @@ select * from dblink('dbname=foodmart',
 product_category varchar, product_subcategory varchar)
 SQL
 
-create_sales_fact_sql = <<-SQL
+"drop table if exists sales_fact",
+<<-SQL,
 create table sales_fact (id serial, order_id int4, order_date date, customer_id int4, product_id int4,
 quantity int4, amount numeric(15,2), cost numeric(15,4)
 )
 SQL
+"create index on sales_fact (order_date, customer_id)",
 
-create_sales_fact_index_sql = <<-SQL
-create index on sales_fact (order_date, customer_id)
-SQL
+2.times.map do
+[
 
-sales_fact_sql = <<-SQL
+<<-SQL,
 insert into sales_fact (order_date, customer_id, product_id, quantity, amount, cost)
 select * from dblink('dbname=foodmart',
 'select t.the_date, s.customer_id, s.product_id,
 s.unit_sales, s.store_sales, s.store_cost
-from sales_fact_1998 as s join time_by_day as t on t.time_id = s.time_id'
+from sales_fact_1998 as s join time_by_day as t on t.time_id = s.time_id
+union all
+select t.the_date, s.customer_id, s.product_id,
+s.unit_sales, s.store_sales, s.store_cost
+from sales_fact_dec_1998 as s join time_by_day as t on t.time_id = s.time_id'
 ) as t(order_date date, customer_id int4, product_id int4,
 quantity numeric(10,4), amount numeric(10,4), cost numeric(10,4))
 SQL
 
-orders_sql = <<-SQL
+# next years
+(1..16).map do |year_count|
+<<-SQL
+insert into sales_fact (order_date, customer_id, product_id, quantity, amount, cost)
+select order_date + interval '#{year_count} year', customer_id, product_id,
+case when quantity > 1 then floor(quantity * (rand + 0.5)) else quantity end as quantity,
+amount * (rand + 0.5) as amount, cost * (rand + 0.5) as cost
+from dblink('dbname=foodmart',
+'select t.the_date, s.customer_id, s.product_id,
+s.unit_sales, s.store_sales, s.store_cost, random()
+from sales_fact_1998 as s join time_by_day as t on t.time_id = s.time_id
+union all
+select t.the_date, s.customer_id, s.product_id,
+s.unit_sales, s.store_sales, s.store_cost, random()
+from sales_fact_dec_1998 as s join time_by_day as t on t.time_id = s.time_id'
+) as t(order_date date, customer_id int4, product_id int4,
+quantity numeric(10,4), amount numeric(10,4), cost numeric(10,4), rand float)
+SQL
+end
+
+].flatten
+end,
+
+<<-SQL,
+update sales_fact s
+set order_id = (select min(s2.id) from sales_fact s2
+where s2.order_date = s.order_date and s2.customer_id = s.customer_id)
+SQL
+
+"truncate orders",
+"truncate order_items",
+"vacuum",
+
+<<-SQL,
 insert into orders(id, customer_id, order_date, status, total_amount)
 select order_id, customer_id, order_date, 'paid', sum(amount)
 from sales_fact
 group by order_id, customer_id, order_date
 SQL
 
-order_items_sql = <<-SQL
+<<-SQL,
 insert into order_items(id, order_id, product_id, position, quantity, price, amount, cost)
 select id, order_id, product_id, id - order_id + 1 as position,
 quantity, amount/quantity as price, amount, cost
 from sales_fact
 SQL
+
+].flatten.each do |sql|
+
+  puts "=== Executing:\n#{sql}"
+  start_time = Time.now
+  result = ActiveRecord::Base.connection.execute sql
+  message = "=== Finished in %.3f seconds" % (Time.now - start_time)
+  if result.is_a?(Integer)
+    message << ", #{result} rows"
+  end
+  puts message
+end
