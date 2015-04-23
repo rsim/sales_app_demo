@@ -5,6 +5,7 @@
 #
 default: &default
   adapter: postgresql
+  host: localhost
   encoding: unicode
   username: sales_app
   password: sales_app

@@ -22,6 +22,11 @@ gem 'jbuilder', '~> 2.0'
 # bundle exec rake doc:rails generates the API under doc/api.
 gem 'sdoc', '~> 0.4.0', group: :doc
 
+gem 'mondrian-olap', git: 'git://github.com/rsim/mondrian-olap.git', require: false
+gem 'jdbc-postgres', '~> 9.4.1200', require: false
+
+gem 'concurrent-ruby', '~> 0.8.0'
+
 # Use ActiveModel has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
 

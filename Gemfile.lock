@@ -1,3 +1,10 @@
+GIT
+  remote: git://github.com/rsim/mondrian-olap.git
+  revision: 90d3679e8b9c330b0c79acb27150657e8e7e7221
+  specs:
+    mondrian-olap (0.6.0)
+      nokogiri
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -52,6 +59,7 @@ GEM
       coffee-script-source
       execjs
     coffee-script-source (1.9.1.1)
+    concurrent-ruby (0.8.0-java)
     diff-lcs (1.2.5)
     erubis (2.7.0)
     execjs (2.5.2)
@@ -171,8 +179,11 @@ DEPENDENCIES
   activerecord-jdbcpostgresql-adapter
   awesome_print
   coffee-rails (~> 4.1.0)
+  concurrent-ruby (~> 0.8.0)
   jbuilder (~> 2.0)
+  jdbc-postgres (~> 9.4.1200)
   jquery-rails
+  mondrian-olap!
   pry
   rails (= 4.2.1)
   rspec-rails (~> 3.2.1)
