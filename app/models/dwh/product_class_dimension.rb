@@ -1,4 +1,5 @@
 class Dwh::ProductClassDimension < Dwh::Dimension
+  has_many :products, class_name: "Dwh::ProductDimension", foreign_key: "product_class_id"
 
   def self.load!
     truncate!

@@ -1,4 +1,5 @@
 class Dwh::CustomerDimension < Dwh::Dimension
+  has_many :sales_facts, class_name: "Dwh::SalesFact", foreign_key: "customer_id"
 
   def self.load!
     truncate!

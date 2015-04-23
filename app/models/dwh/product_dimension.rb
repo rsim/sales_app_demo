@@ -1,4 +1,5 @@
 class Dwh::ProductDimension < Dwh::Dimension
+  has_many :sales_facts, class_name: "Dwh::SalesFact", foreign_key: "product_id"
   belongs_to :product_class, class_name: "Dwh::ProductClassDimension"
 
   def self.load!

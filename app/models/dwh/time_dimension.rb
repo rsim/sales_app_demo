@@ -1,6 +1,7 @@
 class Dwh::TimeDimension < Dwh::Dimension
 
   def self.load!
+  has_many :sales_facts, class_name: "Dwh::SalesFact", foreign_key: "time_id"
     connection.select_values(%[
       SELECT DISTINCT order_date FROM #{Order.table_name}
       WHERE order_date NOT IN (SELECT date_value FROM #{table_name})
